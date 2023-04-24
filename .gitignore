@@ -1,6 +1,6 @@
 .python-version
 poetry.lock
-docker-compose.yml
+.DS_Store
 
 # Created by https://www.toptal.com/developers/gitignore/api/linux,python,django
 # Edit at https://www.toptal.com/developers/gitignore?templates=linux,python,django
