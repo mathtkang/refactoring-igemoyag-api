@@ -1,6 +1,7 @@
 .python-version
 poetry.lock
 .DS_Store
+_api_models.py
 
 # Created by https://www.toptal.com/developers/gitignore/api/linux,python,django
 # Edit at https://www.toptal.com/developers/gitignore?templates=linux,python,django
