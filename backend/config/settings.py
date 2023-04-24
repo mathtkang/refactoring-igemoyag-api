@@ -35,7 +35,8 @@ SECRET_KEY = env("SECRET_KEY")
 # GOOGLE_SECRET = env("GOOGLE_SECRET")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG = True
+DEBUG = "RENDER" not in os.environ
 
 ALLOWED_HOSTS = []
 
@@ -58,11 +59,8 @@ CUSTOM_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
-    "drf_yasg",
-
-    # [CORS 관련]
-    # "corsheaders",
-
+    "drf_yasg",  # swagger
+    "corsheaders",  # CORS
     # [Django-Rest-Framework]
     "rest_framework",
 ]
@@ -84,7 +82,8 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        # Django 템플릿을 로드 할 때 검사 할 파일 시스템 디렉토리 목록(바로 검색 경로)
+        'DIRS': [],  # => [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -103,13 +102,24 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+# if DEBUG:
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "refactoring",  # DB name
+        "USER": "igmy",  # User name in postgresql
+        "PASSWORD": "devpassword",
+        # "HOST": "elice-kdt-2nd-team6.koreacentral.cloudapp.azure.com",
+        "HOST": "127.0.0.1",
+        "PORT": 5432,
     }
 }
-
+# else:
+#     DATABASES = {
+#         "default": dj_database_url.config(
+#             conn_max_age=600,
+#         )
+#     }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -133,13 +143,14 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "ko-kr"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "Asia/Seoul"
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = False  # True 인 경우 디폴트로 미국 시간 사용. False 로 변경해 주어야 설정한 시간대로 변경됨.
+
 
 
 # Static files (CSS, JavaScript, Images)
@@ -151,3 +162,6 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+AUTH_USER_MODEL = "users.User"
