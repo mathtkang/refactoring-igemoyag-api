@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "refactoring-igemoyag"
+version = "0.1.0"
+description = ""
+authors = ["sgaeng <ksge1124@gmail.com>"]
+readme = "README.md"
+packages = [{include = "refactoring_igemoyag"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+django = "^4.2"
+djangorestframework = "^3.14.0"
+gunicorn = "^20.1.0"
+pyjwt = "^2.6.0"
+psycopg2-binary = "^2.9.6"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
