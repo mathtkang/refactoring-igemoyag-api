@@ -11,16 +11,28 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+import environ
+
+
+env = environ.Env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-t+^0%((o9*yw=)i$fqg69k@3pot)a(p7ijp#6(b4grc+yiwj5('
+SECRET_KEY = env("SECRET_KEY")
+
+# SECURITY SOCIAL CLIENT KEY
+# KAKAO_REST_API_KEY = env("KAKAO_REST_API_KEY")
+# GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID")
+# GOOGLE_SECRET = env("GOOGLE_SECRET")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -30,7 +42,7 @@ ALLOWED_HOSTS = []
 
 # Application definition
 
-INSTALLED_APPS = [
+SYSTEM_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -38,6 +50,24 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 ]
+
+CUSTOM_APPS = [
+    "common.apps.CommonConfig",
+    "pills.apps.PillsConfig",
+    "users.apps.UsersConfig",
+]
+
+THIRD_PARTY_APPS = [
+    "drf_yasg",
+
+    # [CORS 관련]
+    # "corsheaders",
+
+    # [Django-Rest-Framework]
+    "rest_framework",
+]
+
+INSTALLED_APPS = SYSTEM_APPS + CUSTOM_APPS + THIRD_PARTY_APPS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
