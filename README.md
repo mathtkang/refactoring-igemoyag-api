@@ -13,15 +13,15 @@
 <br>
 <br>
 
-## 💫 Refactoring한 내용
+## 💫 Refactoring한/할 내용
 - 개발환경을 `pyenv`+`poetry`로 변경했습니다. [본인 블로그 글](https://kkangsg.tistory.com/108)
 - 하나의 app에서 common, auths, users, pills app으로 확장했습니다.
 - 함수형으로 구현된 뷰를 클래스형으로 바꿨습니다.(FBV to CBV)
 - API를 RESTful하게 변경했습니다.
-- OAuth2를 사용하여 소셜로그인(Kakao, Naver, Google)을 구현했습니다.
-- Test Code를 작성했습니다.
-- Swagger를 적용하여 더 직관적인 API spec을 볼 수 있습니다.
-- AWS EC2를 이용하여 배포하였습니다.
+- OAuth2를 사용하여 소셜로그인(Kakao, Naver, Google)을 구현할 예정입니다.
+- Test Code를 작성할 예정입니다.
+<!-- - Swagger를 적용하여 더 직관적인 API spec을 볼 수 있습니다. -->
+- AWS EC2를 이용하여 배포할 예정입니다.
 
 <br>
 
