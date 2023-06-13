@@ -1,9 +1,8 @@
 from rest_framework.serializers import ModelSerializer
-from users import models as m
-
-from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer, TokenObtainPairSerializer
 from rest_framework_simplejwt.state import token_backend
 
+from users import models as m
 
 class CreateUserSerializer(ModelSerializer):
     class Meta:

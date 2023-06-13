@@ -1,6 +1,7 @@
 # Refactoring 💫 ⬅️ 이게모약💊
 
 ⚠️ 해당 repository는 기존 프로젝트의 Backend part만 refactoring한 repository입니다.
+
 **따라서 backend 관련 기술 위주로 작성되었습니다.**
 
 <br>
@@ -25,8 +26,8 @@
 
 <br>
 
-## 🚀 Refactoring한 서비스 접속하기 (not yet)
-<!-- ❗️ 현재 비용의 문제로 서버 접속은 불가능합니다. -->
+## 🚀 [Refactoring한 서비스 접속하기]()
+❗️ 현재 비용의 문제로 서버 접속은 불가능합니다.
 
 
 <br>
@@ -73,7 +74,7 @@
 
 <br>
 
-## 📙 API 명세서
+## 📙 API 명세서 (thru Swagger)
 ### 📑 [API Specification](https://sprinkle-piccolo-9fc.notion.site/API-Specification-gbzr-c287814a50c5452da4d9c2234c2adf75)
 
 <br>
@@ -83,13 +84,14 @@
 
 <br>
 
-## ✅ Test Case (NEW!!)
+## ✅ Test Case (⭐️NEW!!)
 
 <br>
 
 ## 🕸 System Architecture
 
 <img width="1000" alt="System Architecture" src="https://user-images.githubusercontent.com/51039577/234815256-3921b4ba-8f00-4a28-9c63-db5d086c198e.png">
+<!-- 수정 필요! AWS EC2로 배포! -->
 
 <br>
 

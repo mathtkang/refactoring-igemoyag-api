@@ -53,6 +53,7 @@ SYSTEM_APPS = [
 ]
 
 CUSTOM_APPS = [
+    "auths.apps.AuthsConfig",
     "common.apps.CommonConfig",
     "pills.apps.PillsConfig",
     "users.apps.UsersConfig",
@@ -60,9 +61,13 @@ CUSTOM_APPS = [
 
 THIRD_PARTY_APPS = [
     "drf_yasg",  # swagger
-    "corsheaders",  # CORS
+    # "corsheaders",  # CORS
     # [Django-Rest-Framework]
     "rest_framework",
+    'django.contrib.sites',  # allauth 사용 시 필요
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
 ]
 
 INSTALLED_APPS = SYSTEM_APPS + CUSTOM_APPS + THIRD_PARTY_APPS
@@ -102,7 +107,6 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# if DEBUG:
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -114,12 +118,19 @@ DATABASES = {
         "PORT": 5432,
     }
 }
-# else:
-#     DATABASES = {
-#         "default": dj_database_url.config(
-#             conn_max_age=600,
-#         )
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
+# }
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -138,6 +149,14 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # 필수
+    'allauth.account.auth_backends.AuthenticationBackend',  # allauth 사용 시 필수
+]
+
+SITE_ID = 1  # allauth 사용 시 필수
+
 
 
 # Internationalization

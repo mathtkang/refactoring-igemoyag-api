@@ -1,87 +1,33 @@
 from django.db import models
-from django.contrib.auth.models import (
-    BaseUserManager,
-    AbstractBaseUser,
-    PermissionsMixin,
-)
-from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
-from rest_framework.authtoken.models import Token
+from django.contrib.auth.models import AbstractUser
 
-
-from pills import models as p_m
+from pills.models import Pill
 from common.models import CommonModel
 
 
-class UserManager(BaseUserManager):
-    use_in_migrations = True
-
-    def _create_user(self, email, password, **extra_fields):
-        if not email:
-            raise ValueError("The given email must be set")
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
-
-    def create_user(self, email, password=None, **extra_fields):
-        extra_fields.setdefault("is_staff", False)
-        extra_fields.setdefault("is_superuser", False)
-        return self._create_user(email, password, **extra_fields)
-
-    def create_superuser(self, email, password, **extra_fields):
-        extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_superuser", True)
-
-        if extra_fields.get("is_staff") is not True:
-            raise ValueError("Superuser must have is_staff=True.")
-        if extra_fields.get("is_superuser") is not True:
-            raise ValueError("Superuser must have is_superuser=True.")
-
-        return self.create_user(email, password, **extra_fields)
+"""
+[AbstractUser에서 기본적으로 제공하는 필드]
+* id (pk, not null, int)
+* username (not null, char)
+* email (char-emailField)
+* password (not null)
+* last_login (not null, dateTime)
+* date_joined (not null, dateTime)
+"""
 
 
-class User(AbstractBaseUser, PermissionsMixin, CommonModel):
-    """Customized User"""
+class User(AbstractUser):
+    """User model Definition"""
 
     email = models.EmailField(
-        verbose_name=_("email id"), max_length=64, unique=True, help_text="EMAIL ID."
+        verbose_name="email",
+        max_length=256,
+        unique=True,
     )
     username = models.CharField(
-        max_length=30,
+        max_length=128,
+        unique=True,
     )
-    is_staff = models.BooleanField(
-        _("staff status"),
-        default=False,
-        help_text=_(
-            "Designates whether the user can log into this admin site."),
-    )
-    is_active = models.BooleanField(
-        _("active"),
-        default=True,
-        help_text=_(
-            "Designates whether this user should be treated as active. "
-            "Unselect this instead of deleting accounts."
-        ),
-    )
-    social_platform = models.CharField(max_length=20, null=True)
-
-    objects = UserManager()
-
-    EMAIL_FIELD = "email"
-    USERNAME_FIELD = "email"
-
-    class Meta:
-        verbose_name = _("user")
-        verbose_name_plural = _("users")
-
-    def __str__(self):
-        return self.username
-
-    def get_short_name(self):
-        return self.email
-
 
 
 class Favorite(models.Model):
@@ -90,19 +36,16 @@ class Favorite(models.Model):
     - User's Favorite model Definition
     - 'User' and 'Pill' connection model
     """
-    user_email = models.ForeignKey(
-        User, 
-        to_field="email", 
-        db_column="user_email", 
-        on_delete=models.CASCADE
+    user = models.ForeignKey(
+        "users.User",
+        on_delete=models.CASCADE,
+        related_name="favorite",
     )
-    pill_num = models.ForeignKey(
-        p_m.Pill, 
-        to_field="item_num", 
-        db_column="pill_num", 
-        on_delete=models.CASCADE
+    pill = models.ForeignKey(
+        "pills.Pill",
+        on_delete=models.CASCADE,
+        related_name="favorite",
     )
-
 
 
 class SearchHistory(CommonModel):

@@ -1,15 +1,4 @@
 from django.db import models
-from django.contrib.auth.models import (
-    BaseUserManager,
-    AbstractBaseUser,
-    PermissionsMixin,
-)
-from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
-from rest_framework.authtoken.models import Token
-
-from users import models as u_m
-from common.models import CommonModel
 
 
 class Pill(models.Model):
@@ -39,8 +28,8 @@ class Pill(models.Model):
     prescription = models.CharField(
         max_length=30,
     )  # 전문일반구분
-    sungbun = models.CharField(
-        max_length=200,
+    sungbun = models.TextField(
+        null=True, blank=True
     )  # 성분/함량/단위
     efcy_qesitm = models.TextField()  # 효능/효과
     use_method_qesitm = models.TextField()  # 용법/용량(하루 복용량)

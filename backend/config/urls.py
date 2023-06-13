@@ -27,7 +27,8 @@ urlpatterns = [
 
     # end-point
     path('admin/', admin.site.urls),
-    path('api/v1/pills/', include('pills.urls')),
-    path('api/v1/users/', include('users.urls')),
-    # path('api/v1/users/', include('allauth.urls')),  # 소셜로그인
+    path('v1/auth/', include('auths.urls')),
+    path('v1/pills/', include('pills.urls')),
+    # path('v1/users/', include('users.urls')),
+    # path('v1/users/', include('allauth.urls')),  # 소셜로그인
 ]
