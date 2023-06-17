@@ -38,7 +38,7 @@ SECRET_KEY = env("SECRET_KEY")
 # DEBUG = True
 DEBUG = "RENDER" not in os.environ
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -60,14 +60,10 @@ CUSTOM_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
-    "drf_yasg",  # swagger
-    # "corsheaders",  # CORS
     # [Django-Rest-Framework]
     "rest_framework",
-    'django.contrib.sites',  # allauth 사용 시 필요
-    'allauth',
-    'allauth.account',
-    'allauth.socialaccount',
+    # "corsheaders",  # CORS
+    "drf_yasg",  # swagger
 ]
 
 INSTALLED_APPS = SYSTEM_APPS + CUSTOM_APPS + THIRD_PARTY_APPS
@@ -87,8 +83,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        # Django 템플릿을 로드 할 때 검사 할 파일 시스템 디렉토리 목록(바로 검색 경로)
-        'DIRS': [],  # => [BASE_DIR / 'templates'],
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -130,6 +125,8 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
 }
 
 # Password validation
@@ -150,26 +147,19 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',  # 필수
-    'allauth.account.auth_backends.AuthenticationBackend',  # allauth 사용 시 필수
-]
-
-SITE_ID = 1  # allauth 사용 시 필수
-
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
 LANGUAGE_CODE = "ko-kr"
 
-TIME_ZONE = "Asia/Seoul"
+TIME_ZONE = "Asia/Seoul"  # 데이터 베이스 시간대 설정시 문자열로
 
-USE_I18N = True
+USE_I18N = True  # 장고 번역 시스템 활성화 여부
 
-USE_TZ = False  # True 인 경우 디폴트로 미국 시간 사용. False 로 변경해 주어야 설정한 시간대로 변경됨.
+# USE_L10N = True  # 현지화 데이터 형식 사용 여부
 
+USE_TZ = False  # True(디폴트)인 경우 미국 시간 사용. False 로 변경해 주어야 설정한 시간대로 변경됨. (한국에서만 운영할 사이트, db에서 날짜와 시간을 헷갈리지 않게 하기 위해서)
 
 
 # Static files (CSS, JavaScript, Images)
@@ -184,5 +174,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # Customizing User model
+AUTH_USER_MODEL = "users.User"  # <myapp_name>.<user_model_name>
 
-AUTH_USER_MODEL = "users.User"
+
+# AUTHENTICATION_BACKENDS = [
+#     'django.contrib.auth.backends.ModelBackend',  # 필수
+#     # 'allauth.account.auth_backends.AuthenticationBackend',  # allauth 사용 시 필수
+# ]
+
+# # SITE_ID = 1  # allauth 사용 시 필수

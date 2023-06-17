@@ -18,7 +18,6 @@ from common.models import CommonModel
 
 class User(AbstractUser):
     """User model Definition"""
-
     email = models.EmailField(
         verbose_name="email",
         max_length=256,

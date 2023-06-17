@@ -49,7 +49,7 @@ class MyPill(APIView):
     '''
     permission_classes = [IsAuthenticated]
 
-    # def get(self, request):
+    # def get_object(self, request):
     #     pass
     
     def post(self, request):
@@ -61,14 +61,21 @@ class MyPill(APIView):
         if "#$%" in user.email:
             user_email = user.email.split("#$%")[1]
 
-        pill = Pill.objects.all()  # 약 정보 데이터 베이스 전부 가져오기 (여기서 이걸 가져오면 overhead 일어날듯?)
+        # pill_object = Pill.objects.all()  # 약 정보 데이터 베이스 전부 가져오기 (여기서 이걸 가져오면 overhead 일어날듯?)
         pn = request.GET.get("pn", "")  # 약 넘버
 
         # url 약 넘버 정확하게 일치한다면
-        if pn:
+
+        if Pill.objects.filter(item_num=pn).exists():
+        # if pn:
+        #     pill = pill_object.filter(item_num__exact=pn).distinct()
+            # __exact : 정확히 일치하는 데이터를 필터링 -> 굳이 사용 안해도 됨!
+            # .distinct() : 중복된 항목을 제거하고 고유한(unique)한 항목들만 반환
             
-            pill = pill.filter(Q(item_num__exact=pn)).distinct()
-            serializer = PillListSerializer(pill, many=True)
+            pills = Pill.objects.filter(item_num=pn).distinct()
+            serializer = PillListSerializer(pills, many=True)
+            # print(serializer.data)
+
             pill_num = Pill.objects.get(item_num=pn)  # 입력한 약 넘버와 일치하는 약 번호 가져오기
 
             # Favorite 테이블에 user_email과 pill_num를 넣고 저장
