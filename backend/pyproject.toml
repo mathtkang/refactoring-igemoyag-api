@@ -17,6 +17,9 @@ django-environ = "^0.10.0"
 drf-yasg = "^1.21.5"
 django-redis = "^5.2.0"
 djangorestframework-simplejwt = "^5.2.2"
+celery = "^5.3.1"
+redis = "^4.5.5"
+django-celery-results = "^2.5.1"
 
 
 [build-system]
