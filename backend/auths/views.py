@@ -1,17 +1,16 @@
-import requests
-
+import jwt
 from django.contrib.auth import authenticate, login, logout
 from django.conf import settings
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import ParseError
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
 
 # from allauth.socialaccount.models import SocialAccount
 
-from auths.serializers import CreateUserSerializer, MyTokenObtainPairSerializer, MyTokenRefreshSerializer
+from auths.serializers import CreateUserSerializer
 from users.models import User
 
 
@@ -77,7 +76,6 @@ class Login(APIView):
         )
 
         if user:
-            # TODO
             login(request, user)
             return Response(
                 {"detail": "로그인 되었습니다."},
@@ -87,7 +85,7 @@ class Login(APIView):
             raise ParseError(detail="The password is wrong.")
 
 
-class LogOut(APIView):
+class Logout(APIView):
     '''
     ✅ 로그아웃
     '''
@@ -99,6 +97,39 @@ class LogOut(APIView):
             {"detail": "로그아웃 되었습니다."}, 
             status=HTTP_200_OK,
         )
+
+
+class JWTLogin(APIView):
+    def post(self, request):
+        email = request.data.get("email")
+        username = request.data.get("username")
+        password = request.data.get("password")
+
+        if not email or not username or not password:
+            raise ParseError
+        
+        user = authenticate(
+            request,
+            email=email,
+            username=username,
+            password=password,
+        )
+        
+        if user:
+            token = jwt.encode(
+                {"id": user.id},
+                settings.SECRET_KEY,
+                algorithm="HS256",
+            )
+            return Response(
+                {"token": token}
+            )
+        else:
+            return Response(
+                {"error": "wrong password"},
+                status=HTTP_400_BAD_REQUEST,
+            )
+
 
 
 

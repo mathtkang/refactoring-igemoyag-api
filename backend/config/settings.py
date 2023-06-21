@@ -62,6 +62,7 @@ CUSTOM_APPS = [
 THIRD_PARTY_APPS = [
     # [Django-Rest-Framework]
     "rest_framework",
+    "rest_framework.authtoken",  # admin 페이지에서 새로운 모델이 보여짐
     # "corsheaders",  # CORS
     "drf_yasg",  # swagger
 ]
@@ -123,7 +124,9 @@ DATABASES = {
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        "rest_framework.authentication.SessionAuthentication",   # default authentication
+        "rest_framework.authentication.TokenAuthentication",
+        "config.authentication.JWTAuthentication",
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
