@@ -7,6 +7,6 @@ app_name = "pills"
 
 urlpatterns = [
     path("", views.PillList.as_view()),
-    path("search_direct", views.DirectSearchPillList.as_view()),
-    path("<int:pid>", views.PillDetails.as_view()),
+    path("search_direct", views.DirectSearchPillList.as_view()),  # ?name={알약이름}&color_front={앞면색상}&shape={알약모양}&page={페이지}
+    path("<int:pnum>", views.PillDetails.as_view()),
 ]

@@ -25,7 +25,7 @@ class MyPillList(APIView):
 
     def get(self, request):
         '''
-        - 즐겨찾기 한 목록 모두 보여주기
+        - 유저의 즐겨찾기 목록 반환
         '''
         user = request.user
 
@@ -45,38 +45,34 @@ class MyPillList(APIView):
 
 class MyPill(APIView):
     '''
-    - url: /users/mypill/?pn={알약num}
+    - url: /users/mypill/<int:pnum>
     '''
     permission_classes = [IsAuthenticated]
-
-    # def get_object(self, request):
-    #     pass
     
-    def post(self, request):
+    def post(self, request, pnum):
         '''
         - 즐겨찾기(db)에 추가하기
         '''
-        user = request.user  # 유저 불러오기
+        user = request.user
 
         if "#$%" in user.email:
             user_email = user.email.split("#$%")[1]
 
         # pill_object = Pill.objects.all()  # 약 정보 데이터 베이스 전부 가져오기 (여기서 이걸 가져오면 overhead 일어날듯?)
-        pn = request.GET.get("pn", "")  # 약 넘버
+        # pn = request.GET.get("pn", "")  # 약 넘버
 
         # url 약 넘버 정확하게 일치한다면
-
-        if Pill.objects.filter(item_num=pn).exists():
+        if Pill.objects.filter(item_num=pnum).exists():  # pnum : 품목일련번호
         # if pn:
         #     pill = pill_object.filter(item_num__exact=pn).distinct()
             # __exact : 정확히 일치하는 데이터를 필터링 -> 굳이 사용 안해도 됨!
             # .distinct() : 중복된 항목을 제거하고 고유한(unique)한 항목들만 반환
             
-            pills = Pill.objects.filter(item_num=pn).distinct()
+            pills = Pill.objects.filter(item_num=pnum).distinct()
             serializer = PillListSerializer(pills, many=True)
             # print(serializer.data)
 
-            pill_num = Pill.objects.get(item_num=pn)  # 입력한 약 넘버와 일치하는 약 번호 가져오기
+            pill_num = Pill.objects.get(item_num=pnum)  # 입력한 약 넘버와 일치하는 약 번호 가져오기
 
             # Favorite 테이블에 user_email과 pill_num를 넣고 저장
             mypillinfo = Favorite(user_email=user_email, pill_num=pill_num)
@@ -93,23 +89,24 @@ class MyPill(APIView):
                 status=HTTP_400_BAD_REQUEST
             )
     
-    def delete(self, request):
+    def delete(self, request, pnum):
         '''
-        - 즐겨찾기(db)에서 삭제하기
+        - 즐겨찾기(db)에서 삭제하기 (아래 코드 수정 필요)
         '''
         user = request.user  # 유저 불러오기
 
         if "#$%" in user.email:
             user_email = user.email.split("#$%")[1]
 
-        pill = Pill.objects.all()  # 약 정보 데이터 베이스 전부 가져오기 (여기서 이걸 가져오면 overhead 일어날듯?)
-        pn = request.GET.get("pn", "")  # 약 넘버
+        # pill = Pill.objects.all()  # 약 정보 데이터 베이스 전부 가져오기 (여기서 이걸 가져오면 overhead 일어날듯?)
+        # pn = request.GET.get("pn", "")  # 약 넘버
+
 
         # url 약 넘버 정확하게 일치한다면
-        if pn:
-            pill = pill.filter(Q(item_num__exact=pn)).distinct()
-            serializer = PillListSerializer(pill, many=True)
-            pill_num = Pill.objects.get(item_num=pn)  # 입력한 약 넘버와 일치하는 약 번호 가져오기
+        if Pill.objects.filter(item_num=pnum).exists():
+            pills = Pill.objects.filter(item_num__exact=pnum).distinct()
+            serializer = PillListSerializer(pills, many=True)
+            pill_num = Pill.objects.get(item_num=pnum)  # 입력한 약 넘버와 일치하는 약 번호 가져오기
 
             Favorite.objects.filter(user_email=user.email, pill_num=pill_num).delete()
 

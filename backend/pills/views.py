@@ -7,13 +7,13 @@
 import os
 import requests
 import json
-# from .serializers import UserCreateSerializer, InfoPillSerializer, ImageForm, UserPillListSerializer, PillDetailSerializer, MyTokenObtainPairSerializer, MyTokenRefreshSerializer, RefreshTokenSerializer
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage
 
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
+from rest_framework.exceptions import NotFound
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.status import HTTP_204_NO_CONTENT, HTTP_400_BAD_REQUEST, HTTP_403_FORBIDDEN, HTTP_404_NOT_FOUND, HTTP_409_CONFLICT
@@ -22,147 +22,164 @@ from django.utils.decorators import method_decorator
 from django.db.models import Q
 
 from pills.models import Pill
-from pills.serializers import PillListSerializer, PillDetailSerializer, PillSearchLogSerializer
+from pills.serializers import PillListSerializer, PillDetailSerializer, SearchLogSerializer
 from users.models import SearchHistory
 
 # 모든 알약 정보
 
 
 class CustomPagination(PageNumberPagination):
-    page_size = 20  # 페이지당 반환할 객체 수
-    page_size_query_param = 'page_size'
-    max_page_size = 100  # 최대 페이지 크기
+    page_size = 20  # 한 페이지당 표시할 항목 수
+    page_size_query_param = 'page_size'  # URL에서 페이지 크기를 설정하기 위한 쿼리 파라미터
+    max_page_size = 1000  # 최대 페이지 사이즈
 
 
 class PillList(ListAPIView):
     '''
     ✅ 모든 알약 목록 반환 (pagination 적용, 20개씩)
     '''
+    permissions_classes = [AllowAny]
+
     queryset = Pill.objects.all()
     serializer_class = PillListSerializer
     pagination_class = CustomPagination
 
-    # def get(self, request):
-        # all_pills_queryset = Pill.objects.all()
-        # paginated_queryset = CustomPagination().paginate_queryset(all_pills_queryset, request)
-        # serializer = PillListSerializer(paginated_queryset, many=True)
-        # return CustomPagination().get_paginated_response(serializer.data)
 
-
-class DirectSearchPillList(APIView):
+class DirectSearchPillList(ListAPIView):
     '''
-    - 알약 직접 검색
-    - url: /pills/search_direct/?name={알약이름}&color_front={앞면색상}&shape={알약모양}&page={페이지}
-    - 해당 조건 만족하는 여러개의 알약 리스트, pagination으로 반환
+    ✅ 알약 직접 검색
+        url: /pills/search_direct?name=알약이름&color_front=앞면색상&shape=알약모양&page=페이지
+        해당 조건 만족하는 여러 개의 알약 리스트, pagination(page=20)으로 반환 완료!
     '''
-    def get(self, request):
-        '''
-        - 해당 조건에 맞는 알약 리스트를 반환
-        https://www.django-rest-framework.org/api-guide/requests/
-        '''
-        name = request.GET.get("name", "")  # 약 이름
-        color_front = request.GET.get("color_front", "")  # 약 앞면 색상
-        shape = request.GET.get("shape", "")  # 약 모양
-        page = int(request.GET.get('page', '10'))  # 페이지 params
+    permissions_classes = [AllowAny]
 
-        # 만약 ?name={약이름} 이랑 모양, 앞면 색상으로 검색 시 해당 이름과 모양, 색상이 포함된 값을 반환해줌
-        # __contains : 포함하는 문자열 찾기
-        
-        pills = Pill.objects.filter(
-            item_name__contains=name,
-            color_front__contains=color_front,
-            shape__exact=shape,
-        )
+    serializer_class = PillListSerializer
+    pagination_class = CustomPagination
 
-        serializer = PillListSerializer(pills, many=True)
+    def get_queryset(self):
+        # queryset = super().get_queryset()
 
-        per_page = 10  # 페이지당 항목 수
-        # TODO
-        paginator = Paginator(serializer.data, per_page) 
-        page_data = {
-            "total_page": paginator.num_pages  # 전체 페이지 수를 나타내는 정수 (Paginator 객체가 나타내는 데이터 집합을 페이지로 분할했을 때 생성되는 총 페이지 수를 나타냅니다.)
-        }, {
-            "count": paginator.count  # 데이터 집합의 전체 항목 수를 나타내는 정수
-        }, {
-            "page": page  #
-        }, paginator.page(page).object_list
+        name = self.request.query_params.get("name", "")  # 약 이름
+        color_front = self.request.query_params.get("color_front", "")  # 약 앞면 색상
+        shape = self.request.query_params.get("shape", "")  # 약 모양
 
-        return Response(page_data)
+        queryset = Pill.objects.filter(
+            Q(item_name__contains=name) 
+            & Q(color_front__contains=color_front) 
+            | Q(shape__exact=shape)
+        ).distinct()
 
-
-# 알약 상세정보
-"""
-약 이름 = item_name
-사진 링크 = image
-분류명 = bit
-성분/함량/단위 = sungbun
-효능/효과 = efcy_qesitm
-용법/용량 = use_method_qesitm
-부작용(이상반응의 부분집합) = se_qesitm
-사용 시 주의사항 = atpn_qesitm
-보관 방법 = deposit_method_qesitm
-타 악과의 상호작용 = intrc_qesitm
-"""
+        return queryset
 
 
 class PillDetails(APIView):
     '''
-    - pid에 맞는 알약 한개만 반환 (상세정보 포함)
-    - url: /pills/1
-    - 
+    url: /pills/<int:pnum>
     '''
     permissions_classes = [IsAuthenticatedOrReadOnly]
 
-    def get(self, request, pid):
+    def get_pill_object(self, pnum):
+        try:
+            return Pill.objects.get(item_num=pnum)
+        except Pill.DoesNotExist:
+            raise NotFound
+
+    def post(self, request, pnum):
         '''
-        - 해당 알약 (1개) 상세 정보 반환
+        ✅ pnum에 맞는 알약 한 개의 상세 정보 반환 (caching 적용 완료!)
+        - TODO: 검색기록은 1주일 뒤에 삭제한다. (celery 이용하기)
+        [로직 설명]
+        1. user.auth가 있는 경우
+            최근 검색한 내용 중 pnum에 맞는 객체 있는지 확인
+                있으면 해당 searchhistory에서 꺼내줌 (전체 pill을 탐색하지 않아도 되니 부하 줄임)
+                없으면 searchhistory에 저장해줌
+        2. user.auth가 없는 경우
+            전체 pill에서 찾아서 반환
+
+        
         '''
         user = request.user
-        pill = Pill.objects.get(item_num=pid)  # item_num : 품목일련번호
+        pill_object = self.get_pill_object(pnum)
 
-        print(user)
-        print(pill)
-
-        # 찾는 알약이 없는 경우
-        if pill is None:
-            return Response(
-                {"detail": "해당 품목일련번호가 없습니다."},
-                status=HTTP_404_NOT_FOUND
-            )
-        
-        # 로그인 한 유저가 있는 경우
         if user.is_authenticated:
-            serializer = PillSearchLogSerializer(data=request.data)
-
-            # 같은 알약 기록이 이미 있는 경우: (caching) 기록 db에서 불러옴
+            # 같은 알약 찾은 기록이 이미 있는 경우 => caching: 기록 db에서 불러옴
             if SearchHistory.objects.filter(
-                user=user, pill=pill
+                user=user, pill=pill_object
             ).exists():
-                serializer = PillSearchLogSerializer(pill, many=True)
+                pill_object = SearchHistory.objects.get(pill=pill_object)
+                serializer = SearchLogSerializer(pill_object)
+                # print("1")
                 return Response(serializer.data)
-            
-            # (db:SearchHistory)에 저장
             else:
-                serializer = PillSearchLogSerializer(data=request.data)
+                # print("2")
+                pill_object = self.get_pill_object(pnum)
+                serializer = SearchLogSerializer(
+                    data=request.data,  # 여기서 data=request.data를 쓰기 위해서 HTTP method=POST로 설정
+                )
                 if serializer.is_valid():
-                    search_log = serializer.save(
-                        user=user, pill=pill
+                    # print("3")
+                    pill_object = serializer.save(
+                        user=user,
+                        pill=pill_object,
                     )
-                    serializer = PillSearchLogSerializer(search_log)
-                    return Response(serializer.data)
+                    return Response(SearchLogSerializer(pill_object).data)
                 else:
-                    raise serializer.errors  # 이게 되나?
-                    # return Response(serializer.errors)
-
-        # 로그인 한 유저가 없는 경우 : pill 정보만 반환
-        else:
-            serializer = PillDetailSerializer(pill, many=True)
-            return Response(serializer.data)
-
-
+                    return Response(
+                        serializer.errors,
+                        status=HTTP_400_BAD_REQUEST,
+                    )
+        pill_object = self.get_pill_object(pnum)
+        # print("4")
+        return Response(PillDetailSerializer(pill_object).data)
 
 
-# 사진 검색 API
+        
+
+        # print(user)
+        # print(pill)  # Pill number is 201109240, Pill name is 테라페인캡슐75밀리그램(프레가발린).
+        # print(type(pill))  # <class 'pills.models.Pill'>
+
+        # # 찾는 알약이 없는 경우
+        # if pill is None:
+        #     return Response(
+        #         {"detail": "해당 품목일련번호가 없습니다."},
+        #         status=HTTP_404_NOT_FOUND
+        #     )
+        
+        # # 로그인 한 유저가 있는 경우
+        # if user.is_authenticated:
+        #     serializer = SearchLogSerializer(data=request.data)
+
+        #     # 같은 알약 찾은 기록이 이미 있는 경우 => caching: 기록 db에서 불러옴
+        #     if SearchHistory.objects.filter(
+        #         user=user, pill=pill
+        #     ).exists():
+                
+        #         serializer = SearchLogSerializer(pill)
+        #         return Response(serializer.data)
+            
+        #     # 기록이 없으면 db(SearchHistory)에 저장
+        #     else:
+        #         serializer = SearchLogSerializer(data=request.data)
+        #         if serializer.is_valid():
+        #             search_log = serializer.save(
+        #                 user=user, pill=pill
+        #             )
+        #             serializer = SearchLogSerializer(search_log)
+        #             return Response(serializer.data)
+        #         else:
+        #             # raise serializer.errors  # 이게 되나? Nope!  TypeError: exceptions must derive from BaseException라는 에러 발생
+        #             return Response(serializer.errors)
+
+        # # 로그인 한 유저가 없는 경우 => 전체 DB에서 검색
+        # else:
+        #     serializer = PillDetailSerializer(pill)
+        #     return Response(serializer.data)
+
+
+
+
+'''사진 검색 API'''
 # with open('./AI/pill_90.json', 'r') as f:
 #     pill_dict = json.load(f)
 

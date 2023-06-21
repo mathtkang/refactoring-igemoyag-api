@@ -6,8 +6,8 @@ app_name = "users"
 
 urlpatterns = [
     # path("", views.Users.as_view()),
-    path("mypill", views.MyPill.as_view()),  # 즐겨찾기 기능 -> POST, Delete 만 필요!
-    path("mypill-list", views.MyPillList.as_view()),  # 유저의 즐겨찾기 목록 보여줌
+    path("mypill-list", views.MyPillList.as_view()),  # 유저의 즐겨찾기 목록 반환
+    path("mypill/<int:pnum>", views.MyPill.as_view()),  
     path("search-history", views.SearchHistoryLog.as_view()),
 
     # path("change-password", views.ChangePassword.as_view()),
