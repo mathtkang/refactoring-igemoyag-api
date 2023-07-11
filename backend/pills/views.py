@@ -25,7 +25,6 @@ from pills.models import Pill
 from pills.serializers import PillListSerializer, PillDetailSerializer, SearchLogSerializer
 from users.models import SearchHistory
 
-# 모든 알약 정보
 
 
 class CustomPagination(PageNumberPagination):
@@ -36,7 +35,8 @@ class CustomPagination(PageNumberPagination):
 
 class PillList(ListAPIView):
     '''
-    ✅ 모든 알약 목록 반환 (pagination 적용, 20개씩)
+    ✅ 모든 알약 목록 반환
+        url: /pills/?page=n
     '''
     permissions_classes = [AllowAny]
 
@@ -74,15 +74,21 @@ class DirectSearchPillList(ListAPIView):
 
 class PillDetails(APIView):
     '''
-    url: /pills/<int:pnum>
+    - url: /pills/<int:pnum>
     '''
     permissions_classes = [IsAuthenticatedOrReadOnly]
 
     def get_pill_object(self, pnum):
         try:
-            return Pill.objects.get(item_num=pnum)
+            return Pill.objects.filter(item_num=pnum).first()
         except Pill.DoesNotExist:
             raise NotFound
+
+    # def get(self, request, pnum):
+    #     '''test용'''
+    #     pill_object = self.get_pill_object(pnum)
+    #     serializer = PillDetailSerializer(pill_object)
+    #     return Response(serializer.data)
 
     def post(self, request, pnum):
         '''
@@ -95,8 +101,6 @@ class PillDetails(APIView):
                 없으면 searchhistory에 저장해줌
         2. user.auth가 없는 경우
             전체 pill에서 찾아서 반환
-
-        
         '''
         user = request.user
         pill_object = self.get_pill_object(pnum)
@@ -133,49 +137,82 @@ class PillDetails(APIView):
         return Response(PillDetailSerializer(pill_object).data)
 
 
-        
+class LikedPill(APIView):
+    '''
+    - url: /pills/<int:pnum>/like
+    '''
+    permissions_classes = [IsAuthenticated]
+    
+    def post(self, request, pnum):
+        '''
+        - 즐겨찾기(db)에 추가하기
+        '''
+        user = request.user
 
-        # print(user)
-        # print(pill)  # Pill number is 201109240, Pill name is 테라페인캡슐75밀리그램(프레가발린).
-        # print(type(pill))  # <class 'pills.models.Pill'>
+        if "#$%" in user.email:
+            user_email = user.email.split("#$%")[1]
 
-        # # 찾는 알약이 없는 경우
-        # if pill is None:
-        #     return Response(
-        #         {"detail": "해당 품목일련번호가 없습니다."},
-        #         status=HTTP_404_NOT_FOUND
-        #     )
-        
-        # # 로그인 한 유저가 있는 경우
-        # if user.is_authenticated:
-        #     serializer = SearchLogSerializer(data=request.data)
+        # pill_object = Pill.objects.all()  # 약 정보 데이터 베이스 전부 가져오기 (여기서 이걸 가져오면 overhead 일어날듯?)
+        # pn = request.GET.get("pn", "")  # 약 넘버
 
-        #     # 같은 알약 찾은 기록이 이미 있는 경우 => caching: 기록 db에서 불러옴
-        #     if SearchHistory.objects.filter(
-        #         user=user, pill=pill
-        #     ).exists():
-                
-        #         serializer = SearchLogSerializer(pill)
-        #         return Response(serializer.data)
+        # url 약 넘버 정확하게 일치한다면
+        if Pill.objects.filter(item_num=pnum).exists():  # pnum : 품목일련번호
+        # if pn:
+        #     pill = pill_object.filter(item_num__exact=pn).distinct()
+            # __exact : 정확히 일치하는 데이터를 필터링 -> 굳이 사용 안해도 됨!
+            # .distinct() : 중복된 항목을 제거하고 고유한(unique)한 항목들만 반환
             
-        #     # 기록이 없으면 db(SearchHistory)에 저장
-        #     else:
-        #         serializer = SearchLogSerializer(data=request.data)
-        #         if serializer.is_valid():
-        #             search_log = serializer.save(
-        #                 user=user, pill=pill
-        #             )
-        #             serializer = SearchLogSerializer(search_log)
-        #             return Response(serializer.data)
-        #         else:
-        #             # raise serializer.errors  # 이게 되나? Nope!  TypeError: exceptions must derive from BaseException라는 에러 발생
-        #             return Response(serializer.errors)
+            pills = Pill.objects.filter(item_num=pnum).distinct()
+            serializer = PillListSerializer(pills, many=True)
+            # print(serializer.data)
 
-        # # 로그인 한 유저가 없는 경우 => 전체 DB에서 검색
-        # else:
-        #     serializer = PillDetailSerializer(pill)
-        #     return Response(serializer.data)
+            pill_num = Pill.objects.get(item_num=pnum)  # 입력한 약 넘버와 일치하는 약 번호 가져오기
 
+            # Favorite 테이블에 user_email과 pill_num를 넣고 저장
+            mypillinfo = Favorite(user_email=user_email, pill_num=pill_num)
+            mypillinfo.save()  # 저장
+            return Response(
+                {"detail": f"{serializer.data}를 성공적으로 즐겨찾기에 추가했습니다."},
+                status=HTTP_200_OK,
+            )
+        
+        # 정확한 약 넘버가 들어오지 않다면!
+        else:
+            return Response(
+                {"detail": "올바른 요청 값이 아닙니다."},
+                status=HTTP_400_BAD_REQUEST
+            )
+    
+    def delete(self, request, pnum):
+        '''
+        - 즐겨찾기(db)에서 삭제하기 (아래 코드 수정 필요)
+        '''
+        user = request.user  # 유저 불러오기
+
+        if "#$%" in user.email:
+            user_email = user.email.split("#$%")[1]
+
+        # pill = Pill.objects.all()  # 약 정보 데이터 베이스 전부 가져오기 (여기서 이걸 가져오면 overhead 일어날듯?)
+        # pn = request.GET.get("pn", "")  # 약 넘버
+
+
+        # url 약 넘버 정확하게 일치한다면
+        if Pill.objects.filter(item_num=pnum).exists():
+            pills = Pill.objects.filter(item_num__exact=pnum).distinct()
+            serializer = PillListSerializer(pills, many=True)
+            pill_num = Pill.objects.get(item_num=pnum)  # 입력한 약 넘버와 일치하는 약 번호 가져오기
+
+            Favorite.objects.filter(user_email=user.email, pill_num=pill_num).delete()
+
+            return Response(
+                {"detail": "삭제 완료"},
+                status=HTTP_204_NO_CONTENT
+            )
+        else:
+            return Response(
+                {"detail": "올바른 요청 값이 아닙니다."},
+                status=HTTP_400_BAD_REQUEST
+            )
 
 
 
