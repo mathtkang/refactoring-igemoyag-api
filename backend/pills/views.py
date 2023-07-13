@@ -26,7 +26,6 @@ from pills.serializers import PillListSerializer, PillDetailSerializer, SearchLo
 from users.models import Favorite, SearchHistory
 
 
-
 class CustomPagination(PageNumberPagination):
     page_size = 20  # 한 페이지당 표시할 항목 수
     page_size_query_param = 'page_size'  # URL에서 페이지 크기를 설정하기 위한 쿼리 파라미터
@@ -156,11 +155,6 @@ class LikedPill(APIView):
     def post(self, request, pnum):
         '''
         ✅ 즐겨찾기(db)에 추가하기
-        [로직]
-        Favorite에 이미 들어있으면
-            이미 되어있다 raise발생
-        그게 아니라면 
-            Favorite에 저장해주기
         '''
         user = request.user
 
@@ -191,12 +185,7 @@ class LikedPill(APIView):
 
     def delete(self, request, pnum):
         '''
-        - 즐겨찾기(db)에서 삭제하기
-        [로직]
-        Favorite에 있는지 확인 db에 들어있으면
-            삭제해주기
-        그게 아니라면 
-            raise 발생
+        ✅ 즐겨찾기(db)에서 삭제하기
         '''
         user = request.user
         pill_object = self.get_pill_object(pnum)
