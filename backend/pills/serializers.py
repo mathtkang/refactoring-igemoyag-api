@@ -2,7 +2,7 @@
 from rest_framework.serializers import ModelSerializer
 from rest_framework.pagination import PageNumberPagination
 from pills.models import Pill
-from users.models import SearchHistory
+from users.models import Favorite,SearchHistory
 from users.serializers import TinyUserSerializer
 
 
@@ -33,6 +33,14 @@ class PillDetailSerializer(ModelSerializer):
         )
 
 
+class TinyPillSerializer(ModelSerializer):
+    class Meta:
+        model = Pill
+        fields = (
+            "item_num",
+        )
+
+
 class SearchLogSerializer(ModelSerializer):
     # custom serializer
     user = TinyUserSerializer(read_only=True)
@@ -40,4 +48,14 @@ class SearchLogSerializer(ModelSerializer):
 
     class Meta:
         model = SearchHistory
+        fields = "__all__"
+
+
+class LikedPillSerializer(ModelSerializer):
+    # custom serializer
+    user = TinyUserSerializer(read_only=True)
+    pill = TinyPillSerializer(read_only=True)
+
+    class Meta:
+        model = Favorite
         fields = "__all__"

@@ -22,8 +22,8 @@ from django.utils.decorators import method_decorator
 from django.db.models import Q
 
 from pills.models import Pill
-from pills.serializers import PillListSerializer, PillDetailSerializer, SearchLogSerializer
-from users.models import SearchHistory
+from pills.serializers import PillListSerializer, PillDetailSerializer, SearchLogSerializer, LikedPillSerializer
+from users.models import Favorite, SearchHistory
 
 
 
@@ -41,6 +41,8 @@ class PillList(ListAPIView):
     permissions_classes = [AllowAny]
 
     queryset = Pill.objects.all()
+    if not queryset.exists():
+        raise NotFound
     serializer_class = PillListSerializer
     pagination_class = CustomPagination
 
@@ -69,6 +71,11 @@ class DirectSearchPillList(ListAPIView):
             | Q(shape__exact=shape)
         ).distinct()
 
+        if queryset.count() == 0:
+            raise NotFound(
+                detail="Not found any pill matching your request."
+            )
+
         return queryset
 
 
@@ -80,15 +87,11 @@ class PillDetails(APIView):
 
     def get_pill_object(self, pnum):
         try:
-            return Pill.objects.filter(item_num=pnum).first()
+            return Pill.objects.get(item_num=pnum)
         except Pill.DoesNotExist:
-            raise NotFound
-
-    # def get(self, request, pnum):
-    #     '''test용'''
-    #     pill_object = self.get_pill_object(pnum)
-    #     serializer = PillDetailSerializer(pill_object)
-    #     return Response(serializer.data)
+            raise NotFound(
+                detail=f"This Pill Not Found."
+            )
 
     def post(self, request, pnum):
         '''
@@ -110,29 +113,28 @@ class PillDetails(APIView):
             if SearchHistory.objects.filter(
                 user=user, pill=pill_object
             ).exists():
-                pill_object = SearchHistory.objects.get(pill=pill_object)
+                # pill_object = SearchHistory.objects.get(pill=pill_object)
+                pill_object = SearchHistory.objects.filter(pill=pill_object).first()
                 serializer = SearchLogSerializer(pill_object)
                 # print("1")
                 return Response(serializer.data)
             else:
                 # print("2")
-                pill_object = self.get_pill_object(pnum)
                 serializer = SearchLogSerializer(
                     data=request.data,  # 여기서 data=request.data를 쓰기 위해서 HTTP method=POST로 설정
                 )
                 if serializer.is_valid():
                     # print("3")
-                    pill_object = serializer.save(
+                    pill = serializer.save(
                         user=user,
                         pill=pill_object,
                     )
-                    return Response(SearchLogSerializer(pill_object).data)
+                    return Response(SearchLogSerializer(pill).data)
                 else:
                     return Response(
                         serializer.errors,
                         status=HTTP_400_BAD_REQUEST,
                     )
-        pill_object = self.get_pill_object(pnum)
         # print("4")
         return Response(PillDetailSerializer(pill_object).data)
 
@@ -142,78 +144,74 @@ class LikedPill(APIView):
     - url: /pills/<int:pnum>/like
     '''
     permissions_classes = [IsAuthenticated]
+
+    def get_pill_object(self, pnum):
+        try:
+            return Pill.objects.get(item_num=pnum)
+        except Pill.DoesNotExist:
+            raise NotFound(
+                detail=f"This Pill Not Found."
+            )
     
     def post(self, request, pnum):
         '''
-        - 즐겨찾기(db)에 추가하기
+        ✅ 즐겨찾기(db)에 추가하기
+        [로직]
+        Favorite에 이미 들어있으면
+            이미 되어있다 raise발생
+        그게 아니라면 
+            Favorite에 저장해주기
         '''
         user = request.user
 
-        if "#$%" in user.email:
-            user_email = user.email.split("#$%")[1]
+        pill_object = self.get_pill_object(pnum)
 
-        # pill_object = Pill.objects.all()  # 약 정보 데이터 베이스 전부 가져오기 (여기서 이걸 가져오면 overhead 일어날듯?)
-        # pn = request.GET.get("pn", "")  # 약 넘버
-
-        # url 약 넘버 정확하게 일치한다면
-        if Pill.objects.filter(item_num=pnum).exists():  # pnum : 품목일련번호
-        # if pn:
-        #     pill = pill_object.filter(item_num__exact=pn).distinct()
-            # __exact : 정확히 일치하는 데이터를 필터링 -> 굳이 사용 안해도 됨!
-            # .distinct() : 중복된 항목을 제거하고 고유한(unique)한 항목들만 반환
-            
-            pills = Pill.objects.filter(item_num=pnum).distinct()
-            serializer = PillListSerializer(pills, many=True)
-            # print(serializer.data)
-
-            pill_num = Pill.objects.get(item_num=pnum)  # 입력한 약 넘버와 일치하는 약 번호 가져오기
-
-            # Favorite 테이블에 user_email과 pill_num를 넣고 저장
-            mypillinfo = Favorite(user_email=user_email, pill_num=pill_num)
-            mypillinfo.save()  # 저장
+        if Favorite.objects.filter(
+            user=user, pill=pill_object
+        ).exists():
             return Response(
-                {"detail": f"{serializer.data}를 성공적으로 즐겨찾기에 추가했습니다."},
-                status=HTTP_200_OK,
+                {"detail": "This pill has already been liked."},
+                status=HTTP_400_BAD_REQUEST,
             )
-        
-        # 정확한 약 넘버가 들어오지 않다면!
         else:
-            return Response(
-                {"detail": "올바른 요청 값이 아닙니다."},
-                status=HTTP_400_BAD_REQUEST
+            serializer = LikedPillSerializer(
+                data=request.data,
             )
-    
+            if serializer.is_valid():
+                like = serializer.save(
+                    user=user,
+                    pill=pill_object,
+                )
+                return Response(LikedPillSerializer(like).data)
+            else:
+                return Response(
+                    serializer.errors,
+                    status=HTTP_400_BAD_REQUEST,
+                )
+
     def delete(self, request, pnum):
         '''
-        - 즐겨찾기(db)에서 삭제하기 (아래 코드 수정 필요)
+        - 즐겨찾기(db)에서 삭제하기
+        [로직]
+        Favorite에 있는지 확인 db에 들어있으면
+            삭제해주기
+        그게 아니라면 
+            raise 발생
         '''
-        user = request.user  # 유저 불러오기
+        user = request.user
+        pill_object = self.get_pill_object(pnum)
+        like_object = Favorite.objects.filter(user=user, pill=pill_object)
 
-        if "#$%" in user.email:
-            user_email = user.email.split("#$%")[1]
-
-        # pill = Pill.objects.all()  # 약 정보 데이터 베이스 전부 가져오기 (여기서 이걸 가져오면 overhead 일어날듯?)
-        # pn = request.GET.get("pn", "")  # 약 넘버
-
-
-        # url 약 넘버 정확하게 일치한다면
-        if Pill.objects.filter(item_num=pnum).exists():
-            pills = Pill.objects.filter(item_num__exact=pnum).distinct()
-            serializer = PillListSerializer(pills, many=True)
-            pill_num = Pill.objects.get(item_num=pnum)  # 입력한 약 넘버와 일치하는 약 번호 가져오기
-
-            Favorite.objects.filter(user_email=user.email, pill_num=pill_num).delete()
-
+        if like_object.exists():
+            like_object.delete()
             return Response(
-                {"detail": "삭제 완료"},
                 status=HTTP_204_NO_CONTENT
             )
         else:
             return Response(
-                {"detail": "올바른 요청 값이 아닙니다."},
-                status=HTTP_400_BAD_REQUEST
+                {"detail": "This pill has already been marked as unliked."},
+                status=HTTP_400_BAD_REQUEST,
             )
-
 
 
 '''사진 검색 API'''
