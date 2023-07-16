@@ -2,7 +2,17 @@ from rest_framework.serializers import ModelSerializer
 from users.models import Favorite, User
 from pills.models import Pill
 
-class FavoritePillListSerializer(ModelSerializer):
+
+class TinyUserSerializer(ModelSerializer):
+    class Meta:
+        model = User
+        fields = (
+            "email",
+            "username",
+        )
+
+
+class RoughPillSerializer(ModelSerializer):
     class Meta:
         model = Pill
         fields = (
@@ -14,10 +24,11 @@ class FavoritePillListSerializer(ModelSerializer):
         )
 
 
-class TinyUserSerializer(ModelSerializer):
+class FavoritePillListSerializer(ModelSerializer):
+    # custom serializer
+    user = TinyUserSerializer(read_only=True)
+    pill = RoughPillSerializer(read_only=True)
+
     class Meta:
-        model = User
-        fields = (
-            "email",
-            "username",
-        )
+        model = Favorite
+        fields = "__all__"
