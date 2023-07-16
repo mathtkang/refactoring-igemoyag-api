@@ -29,6 +29,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('v1/auth/', include('auths.urls')),
     path('v1/pills/', include('pills.urls')),
-    # path('v1/users/', include('users.urls')),
+    path('v1/users/', include('users.urls')),
     # path('v1/users/', include('allauth.urls')),  # 소셜로그인
 ]
