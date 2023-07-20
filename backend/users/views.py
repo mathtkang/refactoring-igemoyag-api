@@ -13,7 +13,7 @@ from rest_framework.status import HTTP_200_OK, HTTP_204_NO_CONTENT, HTTP_400_BAD
 from users.models import User, Favorite, SearchHistory
 from pills.models import Pill
 from pills.serializers import PillListSerializer, SearchLogSerializer
-from users.serializers import FavoritePillListSerializer, RoughPillSerializer
+from users.serializers import FavoritePillListSerializer, RoughPillSerializer, SearchHistoryPillListSerializer
 
 
 class MyPillList(APIView):
@@ -35,91 +35,73 @@ class MyPillList(APIView):
 
 class SearchLogList(APIView):
     '''
+    검색 기록 목록 반환
     - url: /users/searchlog-list
     '''
     permissions_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        user = self.request.user
-        user_email = str(user.email)
+    # history_pill_list = self.get_queryset()
+    # '''
+    # history_pill_list = SearchHistory.objects.filter(
+    #     user_email=user_email
+    # ).all().values_list("pill_num").order_by("id")[:9]
+    # '''
 
-        if "#$%" in user_email:
-            user_email = user_email.split("#$%")[1]
-
-        queryset = super().get_queryset()
-        queryset = queryset.filter(
-            user_email=user_email
-        ).values_list(
-            "pill_num", flat=True
-        ).order_by("id")[:9]
+    # def get_queryset(self):
         
-        return queryset
+    #     user = self.request.user
+    #     user_email = str(user.email)
+
+    #     if "#$%" in user_email:
+    #         user_email = user_email.split("#$%")[1]
+
+    #     queryset = super().get_queryset()
+    #     queryset = queryset.filter(
+    #         user_email=user_email
+    #     ).values_list(
+    #         "pill_num", flat=True
+    #     ).order_by("id")[:9]
+        
+    #     return queryset
 
     def get(self, request):
         '''
-        - 검색 기록 로그 보여주기 (시간에 따라서 최근 것만 보여줌!)
+        ✅ 검색 기록 로그 보여주기 (일주일 안의 기록만 보여줌!)
         - order by: 최신 순
-        - Post는 pill검색할 때 자동으로 이루어짐 / delete는 시간이 지나면 자동으로 이루어짐
+        - delete는 자동으로 이루어짐
 
-        기록이 적재될 때, 이미 db에 있는 알약내용이라도 다음 id로 적재된다. (서로 다른 것으로 인식)
-        1주일이 지난 뒤에는 db에서 자동으로 삭제해줌 <- 이게 가능할지 모르겠당 (샐러리 사용해야하나?)
+        1주일이 지난 뒤에는 db에서 자동으로 삭제해줌 <- 샐러리 사용해야하나?
+        페이지네이션 해주는거?
         '''
+
         user = request.user
-        user_email = str(user.email)
-
-        if "#$%" in user_email:
-            user_email = user_email.split("#$%")[1]
-
-        data = SearchHistory.objects.filter(user_email=user_email).count()
-        
-        search_history_max_days = 7
-        max_days_ago = timezone.now() - timedelta(days=search_history_max_days)
+        cnt = SearchHistory.objects.filter(user=user).count()
+        print(cnt)  # 2
 
         # 검색 기록이 없는 경우
-        if data == 0:
-            return Response({"message": "최근 검색 기록이 없습니다."})
+        if cnt == 0:
+            return Response(
+                {"detail": "최근 검색 기록이 없습니다."},
+                status=HTTP_404_NOT_FOUND,
+            )
+
+        search_history_max_days = 7  # one week
+        max_days_ago = timezone.now() - timedelta(days=search_history_max_days)
 
         old_history = SearchHistory.objects.filter(
-            user_email=user_email,
-            create_at__lte=max_days_ago
-        ).count()
-
-        # 일주일 지난 기록이 없는 경우 (old_history =< 0)
-        if old_history == 0:
-            history_pill_list = self.get_queryset()
-            '''
-            history_pill_list = SearchHistory.objects.filter(
-                user_email=user_email
-            ).all().values_list("pill_num").order_by("id")[:9]
-            '''
-            pills = Pill.objects.filter(item_num__in=history_pill_list)
-            serializer = RoughPillSerializer(pills, many=True)
-
-            return Response(serializer.data)
-        
-        # 일주일 지난 기록이 있는 경우 (old_history > 0)
-        SearchHistory.objects.filter(
-            user_email=user_email,
-            create_at__lte=max_days_ago
-        ).delete()
-        history_pill_list = self.get_queryset()
-        '''
-        history_pill_list = SearchHistory.objects.filter(
-            user_email=user_email
-        ).all().values_list("pill_num").order_by("id")[:9]
-        '''
-
-        # 오래된 기록 삭제 후 최근 기록이 남아있는 경우
-        if history_pill_list:
-            pills = Pill.objects.filter(item_num__in=history_pill_list)
-            serializer = RoughPillSerializer(pills, many=True)
-            return Response(serializer.data)
-        
-        # 오래된 기록 삭제 후 최근 기록이 없는 경우
-        return Response(
-            {"detail": "최근 검색 기록이 없습니다."},
-            status=HTTP_404_NOT_FOUND,
+            user=user,
+            created_at__lte=max_days_ago,
         )
+        print(old_history.count())  # 0
+
+        # 일주일 지난 기록이 있는 경우: 오래된 기록 삭제하기
+        if old_history.count() > 0:
+            old_history.delete()
+
+        history_pill_list = SearchHistory.objects.filter(user=user)
+        serializer = SearchHistoryPillListSerializer(history_pill_list, many=True)
+
+        return Response(serializer.data)
 
 
 class ChangePassword(APIView):
