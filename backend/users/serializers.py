@@ -1,5 +1,5 @@
 from rest_framework.serializers import ModelSerializer
-from users.models import Favorite, User
+from users.models import User, SearchHistory, Favorite
 from pills.models import Pill
 
 
@@ -31,4 +31,14 @@ class FavoritePillListSerializer(ModelSerializer):
 
     class Meta:
         model = Favorite
+        fields = "__all__"
+
+
+class SearchHistoryPillListSerializer(ModelSerializer):
+    # custom serializer
+    user = TinyUserSerializer(read_only=True)
+    pill = RoughPillSerializer(read_only=True)
+
+    class Meta:
+        model = SearchHistory
         fields = "__all__"
