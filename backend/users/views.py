@@ -3,6 +3,8 @@ from datetime import timedelta
 from django.contrib.auth import authenticate, login, logout
 from django.core.mail.message import EmailMessage
 from django.utils import timezone
+from django.utils.crypto import get_random_string
+from django.core.mail import send_mail
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -123,12 +125,62 @@ class ChangePassword(APIView):
             raise ParseError
 
 
+HOST = 'localhost'
 
-# 비밀번호 변경: 이메일 보내주는 함수 (테스트용)
+class ResetPassword(APIView):
+    permission_classes = [IsAuthenticated]  # 등록된 사용자만 접근 가능 (로그인된 상태)
 
-def send_email(request):
-    subject = "message"
-    to = ["igmy1108@gmail.com"]
-    from_email = "igmy1108@email.com"
-    message = "메시지 테스트"
-    EmailMessage(subject=subject, body=message, to=to, from_email=from_email).send()
+    def post(self, request):
+        user = request.user
+        user_email = str(user.email)
+
+        email = request.data.get("email")
+        print("2")
+
+        if user_email == email:
+            print("1")
+            # 재설정 토큰 생성
+            token = get_random_string(length=16)
+            # token = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+            
+            # 토큰과 사용자 이메일을 이용해 비밀번호 재설정 링크 구성
+            reset_link = f"http://{HOST}/v1/users/reset-password/{token}/"
+            
+            # 이메일 보내기 (ver.1: send_mail() 메서드 사용)
+            subject = "비밀번호 재설정 링크"
+            message = f"비밀번호를 재설정하려면 다음 링크를 클릭하세요: {reset_link}"
+            from_email = "ksge1124@gmail.com"  # 보낼 때 표시되는 이메일
+            recipient_list = [user_email, ]  # 수신자 목록
+
+            send_mail(subject, message, from_email, recipient_list)
+
+            # # 이메일 보내기 (ver.2: EmailMessage() 메서드 사용)
+            # subject = "비밀번호 재설정 링크"
+            # message = f"비밀번호를 재설정하려면 다음 링크를 클릭하세요: {reset_link}"
+            # from_email = "ksge1124@gmail.com"  # 보낼 때 표시되는 이메일
+
+            # EmailMessage(subject, message, from_email, to=[user_email]).send()
+            
+            return Response(
+                {"message": "이메일이 성공적으로 전송되었습니다."},
+                status=HTTP_200_OK
+            )
+        else:
+            return Response(
+                {"message": "입력한 이메일에 해당하는 사용자가 존재하지 않습니다."},
+                status=HTTP_404_NOT_FOUND,
+            )
+
+
+
+
+# 비밀번호 변경(초기화): 이메일 보내주는 함수
+
+# def send_email(request):
+#     subject = "message"
+#     to = ["igmy1108@gmail.com"]
+#     from_email = "igmy1108@email.com"
+#     message = "메시지 테스트"
+#     EmailMessage(subject=subject, body=message, to=to, from_email=from_email).send()
+
+
