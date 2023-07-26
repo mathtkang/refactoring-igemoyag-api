@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import ParseError
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.status import HTTP_200_OK, HTTP_204_NO_CONTENT, HTTP_400_BAD_REQUEST, HTTP_403_FORBIDDEN, HTTP_404_NOT_FOUND, HTTP_409_CONFLICT
+from rest_framework import status
 
 from users.models import User, Favorite, SearchHistory
 from pills.models import Pill
@@ -42,30 +42,6 @@ class SearchLogList(APIView):
     '''
     permissions_classes = [IsAuthenticated]
 
-    # history_pill_list = self.get_queryset()
-    # '''
-    # history_pill_list = SearchHistory.objects.filter(
-    #     user_email=user_email
-    # ).all().values_list("pill_num").order_by("id")[:9]
-    # '''
-
-    # def get_queryset(self):
-        
-    #     user = self.request.user
-    #     user_email = str(user.email)
-
-    #     if "#$%" in user_email:
-    #         user_email = user_email.split("#$%")[1]
-
-    #     queryset = super().get_queryset()
-    #     queryset = queryset.filter(
-    #         user_email=user_email
-    #     ).values_list(
-    #         "pill_num", flat=True
-    #     ).order_by("id")[:9]
-        
-    #     return queryset
-
     def get(self, request):
         '''
         ✅ 검색 기록 로그 보여주기 (일주일 안의 기록만 보여줌!)
@@ -84,7 +60,7 @@ class SearchLogList(APIView):
         if cnt == 0:
             return Response(
                 {"detail": "최근 검색 기록이 없습니다."},
-                status=HTTP_404_NOT_FOUND,
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         search_history_max_days = 7  # one week
@@ -120,7 +96,7 @@ class ChangePassword(APIView):
         if user.check_password(old_password):  # validate hashed pw
             user.set_password(new_password)  # hashed new_pw
             user.save()
-            return Response(status=HTTP_200_OK)
+            return Response(status=status.HTTP_200_OK)
         else:
             raise ParseError
 
@@ -163,12 +139,12 @@ class ResetPassword(APIView):
             
             return Response(
                 {"message": "이메일이 성공적으로 전송되었습니다."},
-                status=HTTP_200_OK
+                status=status.HTTP_200_OK
             )
         else:
             return Response(
                 {"message": "입력한 이메일에 해당하는 사용자가 존재하지 않습니다."},
-                status=HTTP_404_NOT_FOUND,
+                status=status.HTTP_404_NOT_FOUND,
             )
 
 

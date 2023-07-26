@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import NotFound
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
-from rest_framework.status import HTTP_204_NO_CONTENT, HTTP_400_BAD_REQUEST, HTTP_403_FORBIDDEN, HTTP_404_NOT_FOUND, HTTP_409_CONFLICT
+from rest_framework import status
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.db.models import Q
@@ -100,6 +100,8 @@ class PillDetails(APIView):
         1. user.auth가 있는 경우
             최근 검색한 내용 중 pnum에 맞는 객체 있는지 확인
                 있으면 해당 searchhistory에서 꺼내줌 (전체 pill을 탐색하지 않아도 되니 부하 줄임)
+                    +!! 그리고 이미 searchhistory에 있는 pill_num이라도 searchhistory의 new_id로 새롭게 저장해준다. (서로 다른 것으로 인식)
+                    +!! 방금 찾은 내용이면 searchhistory에 저장하지 않는다.
                 없으면 searchhistory에 저장해줌
         2. user.auth가 없는 경우
             전체 pill에서 찾아서 반환
@@ -108,15 +110,16 @@ class PillDetails(APIView):
         pill_object = self.get_pill_object(pnum)
 
         if user.is_authenticated:
-            # 같은 알약 찾은 기록이 이미 있는 경우 => caching: 기록 db에서 불러옴
+            # 같은 알약 찾은 기록이 이미 있는 경우 => caching: 기록 db에서 불러옴 & new_id로 searchHistory db에 저장
             if SearchHistory.objects.filter(
                 user=user, pill=pill_object
             ).exists():
                 # pill_object = SearchHistory.objects.get(pill=pill_object)
                 pill_object = SearchHistory.objects.filter(pill=pill_object).first()
-                serializer = SearchLogSerializer(pill_object)
+
+                
                 # print("1")
-                return Response(serializer.data)
+                return Response(SearchLogSerializer(pill_object).data)
             else:
                 # print("2")
                 serializer = SearchLogSerializer(
@@ -132,7 +135,7 @@ class PillDetails(APIView):
                 else:
                     return Response(
                         serializer.errors,
-                        status=HTTP_400_BAD_REQUEST,
+                        status=status.HTTP_400_BAD_REQUEST,
                     )
         # print("4")
         return Response(PillDetailSerializer(pill_object).data)
@@ -149,7 +152,7 @@ class LikedPill(APIView):
             return Pill.objects.get(item_num=pnum)
         except Pill.DoesNotExist:
             raise NotFound(
-                detail=f"This Pill Not Found."
+                detail="This Pill Not Found."
             )
     
     def post(self, request, pnum):
@@ -165,7 +168,7 @@ class LikedPill(APIView):
         ).exists():
             return Response(
                 {"detail": "This pill has already been liked."},
-                status=HTTP_400_BAD_REQUEST,
+                status=status.HTTP_400_BAD_REQUEST,
             )
         else:
             serializer = LikedPillSerializer(
@@ -180,7 +183,7 @@ class LikedPill(APIView):
             else:
                 return Response(
                     serializer.errors,
-                    status=HTTP_400_BAD_REQUEST,
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
     def delete(self, request, pnum):
@@ -194,12 +197,12 @@ class LikedPill(APIView):
         if like_object.exists():
             like_object.delete()
             return Response(
-                status=HTTP_204_NO_CONTENT
+                status=status.HTTP_204_NO_CONTENT
             )
         else:
             return Response(
                 {"detail": "This pill has already been marked as unliked."},
-                status=HTTP_400_BAD_REQUEST,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
 
