@@ -6,27 +6,26 @@ from django.conf import settings
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import ParseError
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 
 from auths.serializers import CreateUserSerializer
 from users.models import User
-
-
-# from auths.serializers import MyTokenRefreshSerializer
-# from rest_framework_simplejwt.views import TokenViewBase
+from users.serializers import TinyUserSerializer
 
 class SignUp(APIView):
     '''
     ✅ 회원가입
     '''
+    permission_classes = [AllowAny]
+
     def post(self, request):
         email = request.data.get("email")
         username = request.data.get("username")
         password = request.data.get("password")
 
         if not email or not username or not password:
-            raise ParseError
+            raise ParseError(detail="잘못된 요청입니다. email, username, password 모두 존재해야합니다.")
 
         serializer = CreateUserSerializer(data=request.data)
 
@@ -42,23 +41,33 @@ class SignUp(APIView):
         else:
             return Response(
                 serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_409_CONFLICT
             )
 
 
 class Login(APIView):
     '''
-    ✅ 로그인
+    ✅ session 로그인
     '''
+    permission_classes = [AllowAny]
+
     def post(self, request):
         email = request.data.get("email")
         username = request.data.get("username")
         password = request.data.get("password")
 
         if not email or not username or not password:
-            raise ParseError
+            raise ParseError(detail="잘못된 요청입니다. email, username, password 모두 존재해야합니다.")
         
         # validation: email이 맞지 않은 경우, 접근 권한 여부 확인 후 에러발생
+        is_email_verified = User.objects.filter(email=email).exists()
+
+        if not is_email_verified:
+            return Response(
+                {"detail": "해당 email은 존재하지 않습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         user = authenticate(
             request,
             email=email,
@@ -73,31 +82,30 @@ class Login(APIView):
                 status=status.HTTP_200_OK,
             )
         else:
-            raise ParseError(detail="The password is wrong.")
-
-
-class Logout(APIView):
-    '''
-    ✅ 로그아웃
-    '''
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        logout(request)
-        return Response(
-            {"detail": "로그아웃 되었습니다."}, 
-            status=status.HTTP_200_OK,
-        )
+            raise ParseError(detail="The username or password is wrong.")
 
 
 class JWTLogin(APIView):
+    '''
+    ✅ JWT 로그인
+    '''
+    permission_classes = [AllowAny]
+
     def post(self, request):
         email = request.data.get("email")
         username = request.data.get("username")
         password = request.data.get("password")
 
         if not email or not username or not password:
-            raise ParseError
+            raise ParseError(detail="잘못된 요청입니다. email, username, password 모두 존재해야합니다.")
+        
+        is_email_verified = User.objects.filter(email=email).exists()
+
+        if not is_email_verified:
+            return Response(
+                {"detail": "해당 email은 존재하지 않습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         
         user = authenticate(
             request,
@@ -113,10 +121,34 @@ class JWTLogin(APIView):
                 algorithm="HS256",
             )
             return Response(
-                {"token": token}
+                {"token": token},
+                status=status.HTTP_200_OK,
             )
         else:
-            raise ParseError(detail="wrong password")
+            raise ParseError(detail="The username or password is wrong.")
+
+
+class Test_Me(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        serializer = TinyUserSerializer(user)
+        return Response(serializer.data)
+
+
+class Logout(APIView):
+    '''
+    ✅ 로그아웃
+    '''
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        logout(request)
+        return Response(
+            {"detail": "로그아웃 되었습니다."}, 
+            status=status.HTTP_204_NO_CONTENT,
+        )
 
 
 '''OAuth : kakao social login'''
@@ -128,6 +160,8 @@ class KakaoLogIn(APIView):
     '''
     ref. https://developers.kakao.com/docs/latest/ko/kakaologin/rest-api#request-token-request-body
     '''
+    permission_classes = [AllowAny]
+
     def post(self, request):
         code = request.data.get('code')
         # 카카오에 요청해서 access_token(data) 가져오기
