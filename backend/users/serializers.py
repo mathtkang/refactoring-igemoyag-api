@@ -1,4 +1,5 @@
 from rest_framework.serializers import ModelSerializer
+from rest_framework.pagination import PageNumberPagination
 from users.models import User, SearchHistory, Favorite
 from pills.models import Pill
 
@@ -32,6 +33,7 @@ class FavoritePillListSerializer(ModelSerializer):
     class Meta:
         model = Favorite
         fields = "__all__"
+        pagination_class = PageNumberPagination
 
 
 class SearchHistoryPillListSerializer(ModelSerializer):
