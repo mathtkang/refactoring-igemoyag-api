@@ -15,6 +15,7 @@ from users.serializers import TinyUserSerializer
 
 class SignUp(APIView):
     '''
+    🔗 url: /auth/signup
     ✅ 회원가입
     '''
     permission_classes = [AllowAny]
@@ -47,7 +48,8 @@ class SignUp(APIView):
 
 class Login(APIView):
     '''
-    ✅ session 로그인
+    🔗 url: /auth/login
+    ✅ session 로그인 (장고 기본 지원, 내장 메서드 사용)
     '''
     permission_classes = [AllowAny]
 
@@ -87,6 +89,7 @@ class Login(APIView):
 
 class JWTLogin(APIView):
     '''
+    🔗 url: /auth/jwt-login
     ✅ JWT 로그인
     '''
     permission_classes = [AllowAny]
@@ -128,7 +131,7 @@ class JWTLogin(APIView):
             raise ParseError(detail="The username or password is wrong.")
 
 
-class Test_Me(APIView):
+class Test_For_JWT_Login_Me(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -139,6 +142,7 @@ class Test_Me(APIView):
 
 class Logout(APIView):
     '''
+    🔗 url: /auth/logout
     ✅ 로그아웃
     '''
     permission_classes = [IsAuthenticated]
@@ -158,6 +162,8 @@ REDIRECT_URI = "https://127.0.0.1:3000/social/kakao"  # REACT URI
 
 class KakaoLogIn(APIView):
     '''
+    🔗 url: /auth/kakao
+    ✅ 카카오 소셜로그인
     ref. https://developers.kakao.com/docs/latest/ko/kakaologin/rest-api#request-token-request-body
     '''
     permission_classes = [AllowAny]

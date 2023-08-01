@@ -20,6 +20,7 @@ class PillDetailSerializer(ModelSerializer):
     class Meta:
         model = Pill
         fields = (
+            "item_num",
             "item_name",
             "image",
             "bit",

@@ -11,6 +11,6 @@ urlpatterns = [
     path("logout", views.Logout.as_view()),
     path("token-login", obtain_auth_token),   # HTTP method : POST
     path("jwt-login", views.JWTLogin.as_view()),
-    path("me", views.Test_Me.as_view()),
+    path("me", views.Test_For_JWT_Login_Me.as_view()),
     path("kakao", views.KakaoLogIn.as_view())
 ]

@@ -14,11 +14,8 @@ from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework import status
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 from django.db.models import Q
 
 from pills.models import Pill
@@ -34,8 +31,9 @@ class CustomPagination(PageNumberPagination):
 
 class PillList(ListAPIView):
     '''
+    🔗 url: /pills/?page=n
     ✅ 모든 알약 목록 반환
-        url: /pills/?page=n
+    ✅ pagination(page=20) 적용
     '''
     permissions_classes = [AllowAny]
 
@@ -48,9 +46,9 @@ class PillList(ListAPIView):
 
 class DirectSearchPillList(ListAPIView):
     '''
-    ✅ 알약 직접 검색
-        url: /pills/search_direct?name=알약이름&color_front=앞면색상&shape=알약모양&page=페이지
-        해당 조건 만족하는 여러 개의 알약 리스트, pagination(page=20)으로 반환 완료!
+    🔗 url: /pills/search_direct?name=알약이름&color_front=앞면색상&shape=알약모양&page=페이지
+    ✅ 알약 직접 검색 API (query param)
+    ✅ pagination(page=20) 적용
     '''
     permissions_classes = [AllowAny]
 
@@ -58,8 +56,6 @@ class DirectSearchPillList(ListAPIView):
     pagination_class = CustomPagination
 
     def get_queryset(self):
-        # queryset = super().get_queryset()
-
         name = self.request.query_params.get("name", "")  # 약 이름
         color_front = self.request.query_params.get("color_front", "")  # 약 앞면 색상
         shape = self.request.query_params.get("shape", "")  # 약 모양
@@ -80,7 +76,7 @@ class DirectSearchPillList(ListAPIView):
 
 class PillDetails(APIView):
     '''
-    - url: /pills/<int:pnum>
+    🔗 url: /pills/<int:pnum>
     '''
     permissions_classes = [IsAuthenticatedOrReadOnly]
 
@@ -95,13 +91,14 @@ class PillDetails(APIView):
     def post(self, request, pnum):
         '''
         ✅ pnum에 맞는 알약 한 개의 상세 정보 반환 (caching 적용 완료!)
-        - TODO: 검색기록은 1주일 뒤에 삭제한다. (celery 이용하기)
+        ✅ 검색기록은 1주일 뒤에 자동 삭제: 검색기록목록 불러올 때, 자동으로 1주일 지난 기록은 삭제되도록 설정
         [로직 설명]
         1. user.auth가 있는 경우
             최근 검색한 내용 중 pnum에 맞는 객체 있는지 확인
                 있으면 해당 searchhistory에서 꺼내줌 (전체 pill을 탐색하지 않아도 되니 부하 줄임)
                     +!! 그리고 이미 searchhistory에 있는 pill_num이라도 searchhistory의 new_id로 새롭게 저장해준다. (서로 다른 것으로 인식)
                     +!! 방금 찾은 내용이면 searchhistory에 저장하지 않는다.
+                TODO: id를 새롭게 하지 않고, update_at을 바꿔준다 -> 검색시 기준은 update_at이다.)
                 없으면 searchhistory에 저장해줌
         2. user.auth가 없는 경우
             전체 pill에서 찾아서 반환
@@ -110,40 +107,51 @@ class PillDetails(APIView):
         pill_object = self.get_pill_object(pnum)
 
         if user.is_authenticated:
-            # 같은 알약 찾은 기록이 이미 있는 경우 => caching: 기록 db에서 불러옴 & new_id로 searchHistory db에 저장
-            if SearchHistory.objects.filter(
-                user=user, pill=pill_object
-            ).exists():
-                # pill_object = SearchHistory.objects.get(pill=pill_object)
-                pill_object = SearchHistory.objects.filter(pill=pill_object).first()
+            # (1) 같은 알약 찾은 기록이 이미 있는 경우 => "caching": SearchHistory(db)에서 불러옴 & new_id로 searchHistory db에 저장
+            if SearchHistory.objects.filter(user=user, pill=pill_object).exists():
+                search_pill_object = SearchHistory.objects.filter(pill=pill_object).first()
+                serializer = SearchLogSerializer(data=request.data)  # 여기서 data=request.data를 쓰기 위해서 HTTP method=POST로 설정
+                # print(search_pill_object.pill.item_num)
 
-                
-                # print("1")
-                return Response(SearchLogSerializer(pill_object).data)
-            else:
-                # print("2")
-                serializer = SearchLogSerializer(
-                    data=request.data,  # 여기서 data=request.data를 쓰기 위해서 HTTP method=POST로 설정
-                )
                 if serializer.is_valid():
-                    # print("3")
-                    pill = serializer.save(
-                        user=user,
-                        pill=pill_object,
-                    )
-                    return Response(SearchLogSerializer(pill).data)
+                    # (1-1) 방금 찾은 pill_object인 경우: searchHistory에 저장하지 않음 (마지막 != 지금 -> 지금 객체를 db에 저장해줌)
+                    latest_search_pill_object = SearchHistory.objects.order_by('-created_at').first()
+                    # print(latest_search_pill_object.pill.item_num)
+                    if latest_search_pill_object.pill.item_num != search_pill_object.pill.item_num:
+                        serializer.save(
+                            user=user,
+                            pill=search_pill_object,
+                        )  # 이미 searchhistory에 있는 pill_object라도 방금 찾은게 아니라면 한번 더 save해준다. (다른 id로 저장)
+                        # print("1")
+                    return Response(SearchLogSerializer(search_pill_object).data)
                 else:
+                    # print("2")
                     return Response(
                         serializer.errors,
                         status=status.HTTP_400_BAD_REQUEST,
                     )
-        # print("4")
+            else:  # (2) 처음 검색하는 기록
+                serializer = SearchLogSerializer(data=request.data)  # 여기서 data=request.data를 쓰기 위해서 HTTP method=POST로 설정
+                if serializer.is_valid():
+                    pill = serializer.save(
+                        user=user,
+                        pill=pill_object,
+                    )
+                    # print("3")
+                    return Response(SearchLogSerializer(pill).data)
+                else:
+                    # print("4")
+                    return Response(
+                        serializer.errors,
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+        # authentication 이 없는 경우
         return Response(PillDetailSerializer(pill_object).data)
 
 
 class LikedPill(APIView):
     '''
-    - url: /pills/<int:pnum>/like
+    🔗 url: /pills/<int:pnum>/like
     '''
     permissions_classes = [IsAuthenticated]
 
@@ -152,7 +160,7 @@ class LikedPill(APIView):
             return Pill.objects.get(item_num=pnum)
         except Pill.DoesNotExist:
             raise NotFound(
-                detail="This Pill Not Found."
+                detail="This Pill item_num Not Found."
             )
     
     def post(self, request, pnum):
@@ -160,12 +168,9 @@ class LikedPill(APIView):
         ✅ 즐겨찾기(db)에 추가하기
         '''
         user = request.user
-
         pill_object = self.get_pill_object(pnum)
 
-        if Favorite.objects.filter(
-            user=user, pill=pill_object
-        ).exists():
+        if Favorite.objects.filter(user=user, pill=pill_object).exists():
             return Response(
                 {"detail": "This pill has already been liked."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -192,6 +197,7 @@ class LikedPill(APIView):
         '''
         user = request.user
         pill_object = self.get_pill_object(pnum)
+
         like_object = Favorite.objects.filter(user=user, pill=pill_object)
 
         if like_object.exists():

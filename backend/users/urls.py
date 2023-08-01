@@ -9,5 +9,5 @@ urlpatterns = [
     path("searchlog-list", views.SearchLogList.as_view()),  # 유저가 검색했던 알약 목록 반환
     path("change-password", views.ChangePassword.as_view()),
     path("reset-password", views.ResetPassword.as_view()),
-    # path("find-password", views.send_email),
+    # path("reset-password", views.send_email),
 ]

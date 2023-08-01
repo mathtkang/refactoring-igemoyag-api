@@ -3,7 +3,7 @@ from pills import views
 
 app_name = "pills"
 
-# url: v1/auth/
+# url: v1/pills/
 
 urlpatterns = [
     path("", views.PillList.as_view()),
