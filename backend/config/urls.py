@@ -27,6 +27,7 @@ urlpatterns = [
 
     # end-point
     path('admin/', admin.site.urls),
+    path('v1/accounts/', include('accounts.urls')),
     path('v1/auth/', include('auths.urls')),
     path('v1/pills/', include('pills.urls')),
     path('v1/users/', include('users.urls')),
