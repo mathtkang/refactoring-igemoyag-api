@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import EmailValidator
 from django.contrib.auth.models import AbstractUser
 
 from pills.models import Pill
@@ -22,6 +23,7 @@ class User(AbstractUser):
         verbose_name="email",
         max_length=256,
         unique=True,
+        validators=[EmailValidator("이메일 주소가 올바르지 않습니다. @와 .을 포함해주세요.")],
     )
     username = models.CharField(
         max_length=128,
