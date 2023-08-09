@@ -9,7 +9,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 
-from auths.serializers import CreateUserSerializer
+from auths.serializers import CreateUserSerializer, ValidationSerializer
 from users.models import User
 from users.serializers import TinyUserSerializer
 
@@ -27,16 +27,15 @@ class SignUp(APIView):
 
         if not email or not username or not password:
             raise ParseError(detail="잘못된 요청입니다. email, username, password 모두 존재해야합니다.")
-
-        serializer = CreateUserSerializer(data=request.data)
+        
+        serializer = ValidationSerializer(data=request.data)
 
         if serializer.is_valid():
             user = serializer.save()
-            user.set_password(password)
+            user.set_password(password)  # hashed password
             user.save()
-            serializer = CreateUserSerializer(user)
             return Response(
-                serializer.data,
+                CreateUserSerializer(user).data,
                 status=status.HTTP_201_CREATED
             )
         else:

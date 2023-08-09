@@ -63,7 +63,7 @@ CUSTOM_APPS = [
 THIRD_PARTY_APPS = [
     # [Django-Rest-Framework]
     "rest_framework",
-    "rest_framework.authtoken",  # admin 페이지에서 새로운 모델이 보여짐
+    "rest_framework.authtoken",  # admin 페이지에서 새로운 모델이 보여짐 / 이걸 해야 drf의 jwt기능 사용 가능
     # "corsheaders",  # CORS
     "drf_yasg",  # swagger
 ]
@@ -115,13 +115,6 @@ DATABASES = {
         "PORT": 5432,
     }
 }
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [

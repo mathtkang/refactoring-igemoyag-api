@@ -7,12 +7,9 @@ from drf_yasg import openapi
 
 schema_view = get_schema_view(
     openapi.Info(
-        title="airbnb-clone-swagger",
+        title="igmy-refactoring-swagger",
         default_version="v1.0",
-        description="This is airbnb-clone's Swagger Docs",
-        # terms_of_service="https://www.google.com/policies/terms/",
-        # contact=openapi.Contact(name="test", email="test@test.com"),
-        # license=openapi.License(name="Test License"),
+        description="This is igmy-refactoring's Swagger Docs",
     ),
     public=True,
     permission_classes=[permissions.AllowAny],
@@ -31,5 +28,4 @@ urlpatterns = [
     path('v1/auth/', include('auths.urls')),
     path('v1/pills/', include('pills.urls')),
     path('v1/users/', include('users.urls')),
-    # path('v1/users/', include('allauth.urls')),  # 소셜로그인
 ]
