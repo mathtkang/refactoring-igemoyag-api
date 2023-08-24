@@ -1,10 +1,9 @@
-
+from django import forms
 from rest_framework.serializers import ModelSerializer
 from rest_framework.pagination import PageNumberPagination
-from pills.models import Pill
+from pills.models import Pill, UploadFile
 from users.models import Favorite,SearchHistory
 from users.serializers import TinyUserSerializer
-
 
 
 class PillListSerializer(ModelSerializer):
@@ -59,4 +58,10 @@ class LikedPillSerializer(ModelSerializer):
 
     class Meta:
         model = Favorite
+        fields = "__all__"
+
+
+class ImageFormSerializer(forms.ModelForm):
+    class Meta:
+        model = UploadFile
         fields = "__all__"
