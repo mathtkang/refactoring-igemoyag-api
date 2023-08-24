@@ -41,3 +41,8 @@ class Pill(models.Model):
 
     def __str__(self):
         return f"Pill number is {self.item_num}, Pill name is {self.item_name}."
+
+
+class UploadFile(models.Model):
+    files = models.FileField(upload_to="images", null=True)
+    upload_at = models.DateTimeField(auto_now=True)
