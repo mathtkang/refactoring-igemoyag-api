@@ -10,7 +10,7 @@ urlpatterns = [
     path("reset-password/<int:uidb64>/<int:token>", views.ResetPasswordLink.as_view()),
 
     # django 내장
-    path("password_reset", auth_views.PasswordResetView.as_view(), name='password_reset'),
+    path("password-reset", auth_views.PasswordResetView.as_view(), name='password_reset'),
     path(
         route='reset/<uidb64>/<token>/', 
         view=auth_views.PasswordResetConfirmView.as_view(), 

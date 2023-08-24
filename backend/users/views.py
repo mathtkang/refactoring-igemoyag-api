@@ -11,7 +11,8 @@ from rest_framework import status
 
 from users.models import Favorite, SearchHistory
 from pills.views import CustomPagination
-from pills.serializers import PillListSerializer
+from pills.models import Pill
+from pills.serializers import LikedPillSerializer
 from users.serializers import FavoritePillListSerializer, SearchHistoryPillListSerializer
 
 
@@ -37,6 +38,71 @@ class MyPillList(ListAPIView):
             )
 
         return favorite_pill_object
+
+
+class LikedPill(APIView):
+    '''
+    🔗 url: /users/<int:pnum>/like
+    유저가 좋아요 표시하는/취소하는 라우터
+    '''
+    permissions_classes = [IsAuthenticated]
+
+    def get_pill_object(self, pnum):
+        try:
+            return Pill.objects.get(item_num=pnum)
+        except Pill.DoesNotExist:
+            raise NotFound(
+                detail="This Pill item_num Not Found."
+            )
+    
+    def post(self, request, pnum):
+        '''
+        ✅ 즐겨찾기(db)에 추가하기
+        '''
+        user = request.user
+        pill_object = self.get_pill_object(pnum)
+
+        if Favorite.objects.filter(user=user, pill=pill_object).exists():
+            return Response(
+                {"detail": "This pill has already been liked."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        else:
+            serializer = LikedPillSerializer(
+                data=request.data,
+            )
+            if serializer.is_valid():
+                like = serializer.save(
+                    user=user,
+                    pill=pill_object,
+                )
+                return Response(LikedPillSerializer(like).data)
+            else:
+                return Response(
+                    serializer.errors,
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+    def delete(self, request, pnum):
+        '''
+        ✅ 즐겨찾기(db)에서 삭제하기
+        '''
+        user = request.user
+        pill_object = self.get_pill_object(pnum)
+
+        like_object = Favorite.objects.filter(user=user, pill=pill_object)
+
+        if like_object.exists():
+            like_object.delete()
+            return Response(
+                status=status.HTTP_204_NO_CONTENT
+            )
+        else:
+            return Response(
+                {"detail": "This pill has already been marked as unliked."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
 
 
 class SearchLogList(ListAPIView):
