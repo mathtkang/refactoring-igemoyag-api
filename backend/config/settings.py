@@ -28,6 +28,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env("SECRET_KEY")
+PHOTO_KEY = env("PHOTO_KEY")
 
 # SECURITY SOCIAL CLIENT KEY
 # KAKAO_REST_API_KEY = env("KAKAO_REST_API_KEY")
@@ -64,7 +65,7 @@ THIRD_PARTY_APPS = [
     # [Django-Rest-Framework]
     "rest_framework",
     "rest_framework.authtoken",  # admin 페이지에서 새로운 모델이 보여짐 / 이걸 해야 drf의 jwt기능 사용 가능
-    # "corsheaders",  # CORS
+    "corsheaders",  # CORS
     "drf_yasg",  # swagger
 ]
 
@@ -78,7 +79,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # CORS 미들웨어 추가
 ]
+
+# CORS 설정 추가 (보안 설정은 상황에 따라 조절)
+CORS_ALLOW_ALL_ORIGINS = True
 
 ROOT_URLCONF = 'config.urls'
 
