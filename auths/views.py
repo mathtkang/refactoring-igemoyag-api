@@ -2,16 +2,17 @@ import jwt
 import requests
 from django.contrib.auth import authenticate, login, logout
 from django.conf import settings
+from django.http import JsonResponse
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import ParseError
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import status
 
 from auths.serializers import CreateUserSerializer, ValidationSerializer
 from users.models import User
-from users.serializers import TinyUserSerializer
 
 class SignUp(APIView):
     '''
@@ -19,11 +20,12 @@ class SignUp(APIView):
     ✅ 회원가입
     '''
     permission_classes = [AllowAny]
-
+    
     def post(self, request):
         email = request.data.get("email")
         username = request.data.get("username")
         password = request.data.get("password")
+        print(request.data)
 
         if not email or not username or not password:
             raise ParseError(detail="잘못된 요청입니다. email, username, password 모두 존재해야합니다.")
@@ -34,9 +36,10 @@ class SignUp(APIView):
             user = serializer.save()
             user.set_password(password)  # hashed password
             user.save()
+            print(CreateUserSerializer(user).data)
             return Response(
                 CreateUserSerializer(user).data,
-                status=status.HTTP_201_CREATED
+                status=status.HTTP_201_CREATED,
             )
         else:
             return Response(
@@ -54,7 +57,7 @@ class Login(APIView):
 
     def post(self, request):
         email = request.data.get("email")
-        username = request.data.get("username")
+        # username = request.data.get("username")
         password = request.data.get("password")
 
         if not email or not username or not password:
@@ -72,7 +75,7 @@ class Login(APIView):
         user = authenticate(
             request,
             email=email,
-            username=username,
+            # username=username,
             password=password,
         )
 
@@ -86,6 +89,48 @@ class Login(APIView):
             raise ParseError(detail="The username or password is wrong.")
 
 
+# class JWTLogin(APIView):
+#     '''
+#     🔗 url: /auth/jwt-login
+#     ✅ JWT 로그인
+#     '''
+#     permission_classes = [AllowAny]
+
+#     def post(self, request):
+#         email = request.data.get("email")
+#         password = request.data.get("password")
+
+#         if not email or not password:
+#             raise ParseError(detail="잘못된 요청입니다. email, username, password 모두 존재해야합니다.")
+        
+#         is_email_verified = User.objects.filter(email=email).exists()
+
+#         if not is_email_verified:
+#             return Response(
+#                 {"detail": "해당 email은 존재하지 않습니다."},
+#                 status=status.HTTP_404_NOT_FOUND,
+#             )
+        
+#         user = authenticate(
+#             request,
+#             email=email,
+#             # username=username,
+#             password=password,
+#         )
+#         print(user)
+#         if user:
+#             token = jwt.encode(
+#                 {"id": user.id},
+#                 settings.SECRET_KEY,
+#                 algorithm="HS256",
+#             )
+#             return Response(
+#                 {"token": token},
+#                 status=status.HTTP_200_OK,
+#             )
+#         else:
+#             raise ParseError(detail="The username or password is wrong.")
+
 class JWTLogin(APIView):
     '''
     🔗 url: /auth/jwt-login
@@ -94,50 +139,41 @@ class JWTLogin(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        email = request.data.get("email")
-        username = request.data.get("username")
-        password = request.data.get("password")
+        email = request.POST.get("email")
+        password = request.POST.get("password")
 
-        if not email or not username or not password:
-            raise ParseError(detail="잘못된 요청입니다. email, username, password 모두 존재해야합니다.")
-        
-        is_email_verified = User.objects.filter(email=email).exists()
-
-        if not is_email_verified:
-            return Response(
-                {"detail": "해당 email은 존재하지 않습니다."},
-                status=status.HTTP_404_NOT_FOUND,
+        if not email or not password:
+            return JsonResponse(
+                {"detail": "잘못된 요청입니다. email, password 모두 존재해야합니다."}, 
+                status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         user = authenticate(
-            request,
-            email=email,
-            username=username,
-            password=password,
+            request, 
+            username=email, 
+            password=password
         )
-        
-        if user:
-            token = jwt.encode(
-                {"id": user.id},
-                settings.SECRET_KEY,
-                algorithm="HS256",
-            )
-            return Response(
-                {"token": token},
-                status=status.HTTP_200_OK,
+
+        if user is not None:
+            refresh = RefreshToken.for_user(user)
+
+            data = {
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+                "username": user.username,
+                "email": user.email,
+            }
+
+            return JsonResponse(
+                data,
+                status=status.HTTP_200_OK
             )
         else:
-            raise ParseError(detail="The username or password is wrong.")
-
-
-class Test_For_JWT_Login_Me(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        user = request.user
-        serializer = TinyUserSerializer(user)
-        return Response(serializer.data)
-
+            return JsonResponse(
+                {"detail": "이메일 또는 비밀번호가 잘못되었습니다."}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+    
 
 class Logout(APIView):
     '''
