@@ -1,9 +1,9 @@
-import pandas as pd
-from sklearn.cluster import KMeans
-from django.conf import settings
-import tensorflow as tf
-import cv2
-import numpy as np
+# import pandas as pd
+# from sklearn.cluster import KMeans
+# from django.conf import settings
+# import tensorflow as tf
+# import cv2
+# import numpy as np
 
 import os
 import requests

@@ -1,6 +1,6 @@
 .python-version
-poetry.lock
 .DS_Store
+model/
 _api_models.py
 TODO
 
