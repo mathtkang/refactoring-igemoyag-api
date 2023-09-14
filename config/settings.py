@@ -18,6 +18,7 @@ ALLOWED_HOSTS = [
     # "*",
     'backend-api',
     '127.0.0.1',
+    '172.31.39.243',
 ]
 
 # Application definition

@@ -21,7 +21,7 @@ RUN apt-get update \
     && curl -sSL https://install.python-poetry.org | python3 - 
 
 # 애플리케이션 종속성 설치
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml ./
 RUN poetry install --no-root --no-ansi --no-dev
 
 # 애플리케이션 코드 복사

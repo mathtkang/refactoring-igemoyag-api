@@ -11,7 +11,8 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      # - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro  # 읽기 전용
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:rw  # 읽기/쓰기
       - django_media:/media/ 
       - django_static:/static/ 
     restart: always
@@ -22,7 +23,7 @@ services:
     # entrypoint: sh -c "poetry show"
     entrypoint: sh -c "poetry run python manage.py collectstatic --no-input && poetry run python manage.py migrate && poetry run gunicorn config.wsgi --workers=5 -b 0.0.0.0:8000"
     volumes:
-      - ./backend/django/:/app/   # -> ec2 인스턴스 안의 위치?
+      - ./refactoring/:/app/
       - /etc/localtime:/etc/localtime:ro
       - django_media:/app/media/
       - django_static:/app/static/
@@ -39,4 +40,4 @@ services:
       - .env
     depends_on:
       - nginx
-    # restart: always
+    restart: always
