@@ -1,0 +1,42 @@
+version: '3.8'
+
+volumes:
+  django_media: {}
+  django_static: {}
+
+services:
+  nginx:
+    container_name : nginx
+    image: nginx:1.23.2-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - django_media:/media/ 
+      - django_static:/static/ 
+    restart: always
+
+  refactoring-backend:
+    container_name: refactoring-backend
+    build: .  # Dockerfile 을 찾는 경로
+    # entrypoint: sh -c "poetry show"
+    entrypoint: sh -c "poetry run python manage.py collectstatic --no-input && poetry run python manage.py migrate && poetry run gunicorn config.wsgi --workers=5 -b 0.0.0.0:8000"
+    volumes:
+      - ./backend/django/:/app/   # -> ec2 인스턴스 안의 위치?
+      - /etc/localtime:/etc/localtime:ro
+      - django_media:/app/media/
+      - django_static:/app/static/
+    environment:
+      - SECRET_KEY
+      - DEBUG
+      - POSTGRESQL_DB
+      - DB_NAME
+      - DB_USER
+      - DB_PASSWORD
+      - DB_HOST
+      - DB_PORT
+    env_file:
+      - .env
+    depends_on:
+      - nginx
+    # restart: always
