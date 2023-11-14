@@ -75,7 +75,8 @@
 <br>
 
 ## 📙 API 명세서 (thru Swagger)
-### 📑 [API Specification](https://sprinkle-piccolo-9fc.notion.site/API-Specification-gbzr-c287814a50c5452da4d9c2234c2adf75)
+### 📑 [API Specification](https://sprinkle-piccolo-9fc.notion.site/API-Spec-ERD-b7782f529a2644139d1d7d82268273a3?pvs=4)
+
 
 <br>
 
@@ -83,10 +84,11 @@
 <img width="1000" alt="ERD" src="https://user-images.githubusercontent.com/51039577/234810851-2de392fb-d9f9-451d-a8d0-62d66f9b1880.png">
 
 <br>
-
+<!--
 ## ✅ Test Case (⭐️NEW!!)
 
 <br>
+-->
 
 ## 🕸 System Architecture
 
@@ -101,6 +103,7 @@
 
 <br>
 
+<!--
 ## 🌍 배포
 
 Docker, NginX, Gunicorn을 사용하여 AWS EC2 서버에 배포하였습니다.
@@ -109,6 +112,7 @@ Docker, NginX, Gunicorn을 사용하여 AWS EC2 서버에 배포하였습니다.
 
 ❗️ 현재 비용의 문제로 서버 접속은 불가능합니다.
 
+-->
 <br>
 <br>
 <br>
